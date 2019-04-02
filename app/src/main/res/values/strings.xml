@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">PixelArt</string>
+    <string name="menu_text_view">Pixel Art</string>
+    <string name="create_bitmap_button">Create Bitmap</string>
+    <string name="new_palette_button">New Palette</string>
+    <string name="add_color_button">Add Color</string>
+    <string name="add_frame_button">Add Frame</string>
+    <string name="clear_bitmap_button">Clear Bitmap</string>
+    <string name="fill_bitmap_button">Fill Bitmap</string>
+</resources>
