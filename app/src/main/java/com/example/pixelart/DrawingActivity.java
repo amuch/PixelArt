@@ -4,33 +4,33 @@ import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
-import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
-import android.widget.Toast;
+
+import java.util.ArrayList;
 
 public class DrawingActivity extends Activity implements View.OnClickListener, View.OnTouchListener {
 
     private final int WIDTH = 32;
     private final int HEIGHT = 32;
+    private final int COLOR_BUTTON_WIDTH = 120;
+    private final int COLOR_BUTTON_HEIGHT = 120;
+    private final int CURRENT_COLOR_IMAGE_WIDTH = 160;
+    private final int CURRENT_COLOR_IMAGE_HEIGHT = 160;
 
     private final int PIXEL_BACKGROUND = Color.argb(0, 127, 127, 127);
+    private ArrayList<Integer> colorPalette;
     private int currentColor;
 
     private Bitmap mainBitmap;
     private ImageView mainImageView, currentColorImageView;
-
-
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,29 +38,17 @@ public class DrawingActivity extends Activity implements View.OnClickListener, V
         setContentView(R.layout.activity_drawing);
 
         bindButtons();
-        mainImageView = findViewById(R.id.mainImageView);
-        mainImageView.setOnTouchListener(this);
+        bindMainImageView();
 
+        colorPalette = setColorArrayList(getResources().getIntArray(R.array.default_palette));
 
+        bindCurrentColorImageView();
 
-        Bitmap.Config config = Bitmap.Config.ARGB_8888;
-        mainBitmap = Bitmap.createBitmap(WIDTH, HEIGHT, config);
-
-        clearBitmap();
-
-        currentColorImageView = findViewById(R.id.currentColorImageView);
-        Drawable drawable = getResources().getDrawable(R.drawable.selected_palette);
-        //drawable.setColorFilter(currentColor, PorterDuff.Mode.ADD);
-        currentColorImageView.setBackgroundDrawable(drawable);
-        currentColorImageView.setMinimumWidth(160);
-        currentColorImageView.setMinimumHeight(160);
-
-        setPalette();
+        setPalette(colorPalette);
     }
 
     @Override
     public void onClick(View v) {
-
         switch(v.getId()) {
             case R.id.addFrameButton:
 
@@ -91,7 +79,6 @@ public class DrawingActivity extends Activity implements View.OnClickListener, V
 
     @Override
     public boolean onTouch(View v, MotionEvent event) {
-
         switch(event.getAction() & MotionEvent.ACTION_MASK) {
             case MotionEvent.ACTION_DOWN:
             case MotionEvent.ACTION_MOVE:
@@ -104,7 +91,7 @@ public class DrawingActivity extends Activity implements View.OnClickListener, V
     }
 
     private void colorPixel(int x, int y) {
-
+        // This check is currently unnecessary, but it might still come in handy eg. brush sizes.
         if(y < mainBitmap.getHeight() && x < mainBitmap.getWidth()) {
 
             int pixel = mainBitmap.getPixel(x, y);
@@ -114,7 +101,6 @@ public class DrawingActivity extends Activity implements View.OnClickListener, V
                 mainImageView.setImageBitmap(mainBitmap);
             }
         }
-
         //Toast toast = Toast.makeText(this, "X: " + x + " Y: " + y, Toast.LENGTH_LONG);
         //toast.show();
     }
@@ -134,7 +120,6 @@ public class DrawingActivity extends Activity implements View.OnClickListener, V
      *********************************************************************************************/
 
     private void bindButtons() {
-
         Button addFrameButton = findViewById(R.id.addFrameButton);
         addFrameButton.setOnClickListener(this);
 
@@ -151,94 +136,100 @@ public class DrawingActivity extends Activity implements View.OnClickListener, V
         clearBitmapButton.setOnClickListener(this);
     }
 
+    private void bindMainImageView() {
+        mainImageView = findViewById(R.id.mainImageView);
+        mainImageView.setOnTouchListener(this);
+
+        createMainBitmap();
+    }
+
+    private void createMainBitmap() {
+        Bitmap.Config config = Bitmap.Config.ARGB_8888;
+        mainBitmap = Bitmap.createBitmap(WIDTH, HEIGHT, config);
+
+        clearBitmap();
+    }
+
     private void clearBitmap() {
-        for(int i = 0; i < WIDTH; i++) {
-            for(int j = 0; j < HEIGHT; j++) {
-                mainBitmap.setPixel(i, j, PIXEL_BACKGROUND);
-            }
-        }
+        fillBitmap(mainBitmap, PIXEL_BACKGROUND);
         mainImageView.setImageBitmap(mainBitmap);
     }
 
-    private void setPalette() {
+    private void bindCurrentColorImageView() {
+        currentColorImageView = findViewById(R.id.currentColorImageView);
+        currentColorImageView.setLayoutParams(colorImageParameters(CURRENT_COLOR_IMAGE_WIDTH, CURRENT_COLOR_IMAGE_HEIGHT));
+        Drawable drawable = getImageDrawable(currentColor);
+        currentColorImageView.setBackgroundDrawable(drawable);
+    }
 
-        final int[] colorArray = getResources().getIntArray(R.array.default_palette);
+    private ArrayList<Integer> setColorArrayList(int[] colors) {
+        ArrayList<Integer> colorsArrayList = new ArrayList<>();
 
-        currentColorImageView.setBackgroundColor(colorArray[0]);
-
-        LinearLayout linearLayout = findViewById(R.id.paletteLinearLayout);
-        linearLayout.removeAllViews();
-
-        for(int i = 0; i < colorArray.length; i++) {
-            final int index = i;
-
-            ImageButton imageButton = new ImageButton(this);
-            imageButton.setLayoutParams(paletteButtonParameters());
-            Drawable drawable = getResources().getDrawable(R.drawable.selected_palette);
-            drawable.setColorFilter(colorArray[i], PorterDuff.Mode.ADD);
-            imageButton.setBackgroundDrawable(drawable);
-            //imageButton.setBackgroundColor(colorArray[i]);
-            //imageButton.setMinimumHeight(120);
-            //imageButton.setMinimumWidth(120);
-            imageButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    currentColor = colorArray[index];
-                    Drawable drawable = getResources().getDrawable(R.drawable.selected_palette);
-                    drawable.setColorFilter(currentColor, PorterDuff.Mode.ADD);
-                    currentColorImageView.setBackgroundDrawable(drawable);
-                    //currentColorImageView.setBackgroundColor(currentColor);
-                }
-            });
-            linearLayout.addView(imageButton);
+        for(int i = 0; i < colors.length; i++) {
+            colorsArrayList.add(colors[i]);
         }
+        // Add the clear color to the end of the colors list.
+        colorsArrayList.add(PIXEL_BACKGROUND);
 
-        // Add clear color button
-        ImageButton imageButton = new ImageButton(this);
-        imageButton.setLayoutParams(paletteButtonParameters());
+        currentColor = colorsArrayList.get(0);
 
-        //Drawable drawable = getResources().getDrawable(R.drawable.selected_palette);
-        //drawable.setColorFilter(new PorterDuffColorFilter(PIXEL_BACKGROUND, PorterDuff.Mode.MULTIPLY));
-        imageButton.setBackgroundResource(R.drawable.selected_palette);
-        //imageButton.setBackgroundColor(PIXEL_BACKGROUND);
+        return colorsArrayList;
+    }
 
-        //imageButton.setMinimumHeight(120);
-        //imageButton.setMinimumWidth(120);
-        imageButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                currentColor = PIXEL_BACKGROUND;
-                currentColorImageView.setBackgroundColor(currentColor);
+    private void setPalette(final ArrayList<Integer> colorList) {
+        if(colorList.size() > 0) {
+
+            LinearLayout linearLayout = findViewById(R.id.paletteLinearLayout);
+            linearLayout.removeAllViews();
+
+            for(int i = 0; i < colorList.size(); i++) {
+                final int index = i;
+
+                ImageButton imageButton = new ImageButton(this);
+                imageButton.setLayoutParams(colorImageParameters(COLOR_BUTTON_WIDTH, COLOR_BUTTON_HEIGHT));
+                Drawable drawable = getImageDrawable(colorList.get(i));
+                imageButton.setBackgroundDrawable(drawable);
+
+                imageButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        currentColor = colorList.get(index);
+                        Drawable drawable = getImageDrawable(currentColor);
+                        currentColorImageView.setBackgroundDrawable(drawable);
+                    }
+                });
+                linearLayout.addView(imageButton);
             }
-        });
-        linearLayout.addView(imageButton);
+        }
     }
 
     // Under no circumstance, return an int less than 0 or greater than maxBitmapDimension - 1.
     private int touchToPixel(int maxBitmapDimension, int viewMaximum, float touchDimension) {
-
-        int pixel = 0;
-
-        int dimensionalUnit = viewMaximum / maxBitmapDimension;
-
-        if(touchDimension > 0) {
-            pixel = (int) touchDimension / dimensionalUnit;
-        }
-
-        if(pixel > maxBitmapDimension) {
-            pixel = maxBitmapDimension - 1;
-        }
+        float dimensionalUnit = (float) viewMaximum / maxBitmapDimension;
+        int pixel = touchDimension > 0 ? (int) (touchDimension / dimensionalUnit) : 0;
+        pixel = pixel > maxBitmapDimension ? maxBitmapDimension - 1 : pixel;
 
         return pixel;
     }
 
-    private LinearLayout.LayoutParams paletteButtonParameters() {
+    private Drawable getImageDrawable(int color) {
+        Drawable drawable = getResources().getDrawable(R.drawable.palette_drawable);
+
+        // The color filter doesn't work with the clear color.
+        if(color != PIXEL_BACKGROUND) {
+            drawable.setColorFilter(color, PorterDuff.Mode.ADD);
+        }
+
+        return drawable;
+    }
+
+    private LinearLayout.LayoutParams colorImageParameters(int imageWidth, int imageHeight) {
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT);
         params.gravity = Gravity.CENTER;
         params.setMargins(8, 8, 8, 8);
-        params.width = 130;
-        params.height = 130;
+        params.width = imageWidth;
+        params.height = imageHeight;
 
         return params;
     }
